@@ -110,16 +110,13 @@
     }
   </script>
 
-<h1>Usage Data Plot</h1>
-<div id="chart-container">
+<br></br>
+<br></br>
+<br></br>
+
+<div id="chart-container" style="padding-right: 500px;">
     <canvas id="usage-chart"></canvas>
 </div>
-
-
-
-
-
-
 
 <script>
   // Reference to the data in your database
@@ -155,7 +152,7 @@
         datasets: [{
           label: 'Gas Usage Data',
           data: chartData,
-          backgroundColor: 'blue',
+          backgroundColor: 'black',
           borderColor: 'blue',
           showLine: true, // Display lines connecting the dots
           fill: false, // Don't fill the area under the line
@@ -167,6 +164,7 @@
           x: {
             type: 'linear',
             position: 'bottom',
+            min: 1695950000000, 
             title: {
               display: true,
               text: 'Unix Time'
@@ -187,6 +185,80 @@
   });
 </script>
 
+<br></br>
+<br></br>
+<br></br>
+<div id="chart2-container"  style="padding-right: 500px;" >
+  <canvas id="usage-chart2"></canvas>
+</div>
+
+<script>
+  // Reference to the data in your database
+  var ref = firebase.database().ref("numbers");
+
+  // Get the data
+  ref.once('value').then(function (snapshot) {
+    var data = snapshot.val();
+    var chartData = [];
+
+    snapshot.forEach(function (childSnapshot) {
+      var numberData = childSnapshot.val();
+      chartData.push({
+        x: numberData.unixtime, // Use unixtime for the x-axis
+        y: parseInt(numberData.electricity) // Use elec for the y-axis
+      });
+    });
+
+    // Sort the chartData based on the x values (unixtime)
+    chartData.sort(function (a, b) {
+      return a.x - b.x;
+    });
+
+    // Calculate suggested min and max values for the y-axis
+    var minY = Math.min.apply(null, chartData.map(function (item) { return item.y; }));
+    var maxY = Math.max.apply(null, chartData.map(function (item) { return item.y; }));
+
+
+    // Create a chart
+    var ctx = document.getElementById('usage-chart2').getContext('2d');
+    var chart = new Chart(ctx, {
+      type: 'scatter', // Use the scatter type for a dot plot
+      data: {
+        datasets: [{
+          label: 'Electricity Usage Data',
+          data: chartData,
+          backgroundColor: 'black',
+          borderColor: 'red',
+          showLine: true, // Display lines connecting the dots
+          fill: false, // Don't fill the area under the line
+          radius: 3 // Adjust the size of the dots
+        }]
+      },
+      options: {
+        scales: {
+          x: {
+            type: 'linear',
+            min: 1695950000000,  
+            position: 'bottom',
+            title: {
+              display: true,
+              text: 'Unix Time'
+            }
+          },
+          y: {
+            beginAtZero: false,
+            suggestedMin: minY - 1, // Adjust as needed
+            suggestedMax: maxY + 1, // Adjust as needed
+            title: {
+              display: true,
+              text: 'Electricity Usage'
+            }
+          }
+        }
+      }
+    });
+  });
+</script>
 
 
 
