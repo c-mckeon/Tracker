@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
+  <title>Usage Data Plot</title>
+  <!-- Include Chart.js library -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <title>Number Tracking Tool</title>
 </head>
 <body>
@@ -40,13 +44,16 @@
       const gas = document.getElementById('messageInput2').value;
       const electricity = document.getElementById('messageInput3').value;
       const timestamp = new Date().toISOString();
+      const unixtime = new Date().getTime(); // Use timestamps as keys
+
 
       // Push the data to the Firebase database
       numbersRef.push({
         water: water,
         gas: gas,
         electricity: electricity,
-        timestamp: timestamp
+        timestamp: timestamp,
+        unixtime: unixtime
       });
 
       alert("Numbers and timestamp recorded successfully!");
@@ -83,7 +90,7 @@
 
         // Create a span element for the number data
         var span = document.createElement("span");
-        span.textContent = `Water: ${numberData.water}, Gas: ${numberData.gas}, Electricity: ${numberData.electricity}, Timestamp: ${numberData.timestamp}`;
+        span.textContent = `Water: ${numberData.water}, Gas: ${numberData.gas}, Electricity: ${numberData.electricity}, Unixtime: ${numberData.unixtime},  Timestamp: ${numberData.timestamp}`;
 
         // Append the span element to the <li>
         li.appendChild(span);
@@ -94,14 +101,101 @@
     });
 
     // Function to delete a number
-     function deleteNumber(numberKey) {
+    function deleteNumber(numberKey) {
       // Get a reference to the specific number in the database
-       var numberRef = database.ref("numbers/" + numberKey);
+      var numberRef = database.ref("numbers/" + numberKey);
 
       // Remove the number from the database
-      // numberRef.remove();
+      numberRef.remove();
     }
   </script>
+
+<h1>Usage Data Plot</h1>
+<div id="chart-container">
+    <canvas id="usage-chart"></canvas>
+</div>
+
+
+
+
+
+
+
+<script>
+  // Reference to the data in your database
+  var ref = firebase.database().ref("numbers");
+
+  // Get the data
+  ref.once('value').then(function (snapshot) {
+    var data = snapshot.val();
+    var chartData = [];
+
+    snapshot.forEach(function (childSnapshot) {
+      var numberData = childSnapshot.val();
+      chartData.push({
+        x: numberData.unixtime, // Use unixtime for the x-axis
+        y: parseInt(numberData.gas) // Use gas for the y-axis
+      });
+    });
+
+    // Sort the chartData based on the x values (unixtime)
+    chartData.sort(function (a, b) {
+      return a.x - b.x;
+    });
+
+    // Calculate suggested min and max values for the y-axis
+    var minY = Math.min.apply(null, chartData.map(function (item) { return item.y; }));
+    var maxY = Math.max.apply(null, chartData.map(function (item) { return item.y; }));
+
+    // Create a chart
+    var ctx = document.getElementById('usage-chart').getContext('2d');
+    var chart = new Chart(ctx, {
+      type: 'scatter', // Use the scatter type for a dot plot
+      data: {
+        datasets: [{
+          label: 'Gas Usage Data',
+          data: chartData,
+          backgroundColor: 'blue',
+          borderColor: 'blue',
+          showLine: true, // Display lines connecting the dots
+          fill: false, // Don't fill the area under the line
+          radius: 3 // Adjust the size of the dots
+        }]
+      },
+      options: {
+        scales: {
+          x: {
+            type: 'linear',
+            position: 'bottom',
+            title: {
+              display: true,
+              text: 'Unix Time'
+            }
+          },
+          y: {
+            beginAtZero: false,
+            suggestedMin: minY - 1, // Adjust as needed
+            suggestedMax: maxY + 1, // Adjust as needed
+            title: {
+              display: true,
+              text: 'Gas Usage'
+            }
+          }
+        }
+      }
+    });
+  });
+</script>
+
+
+
+
+
+
+
+
+
+
 </body>
 </html>
 
