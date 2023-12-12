@@ -15,20 +15,21 @@
 
   <!-- Your Firebase configuration -->
   <script>
-    // Your web app's Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyC1E9Za2CF_uBqZ8ySWa6pJ4NJtsPidFXQ",
-      authDomain: "usagetool.firebaseapp.com",
-      databaseURL: "https://usagetool-default-rtdb.europe-west1.firebasedatabase.app/",
-      projectId: "usagetool",
-      storageBucket: "usagetool.appspot.com",
-      messagingSenderId: "161908323568",
-      appId: "1:161908323568:web:5ba0b3f7381cd7d1d9be35"
-    };
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyC1E9Za2CF_uBqZ8ySWa6pJ4NJtsPidFXQ",
+    authDomain: "usagetool.firebaseapp.com",
+    databaseURL: "https://usagetool-default-rtdb.europe-west1.firebasedatabase.app/",
+    projectId: "usagetool",
+    storageBucket: "usagetool.appspot.com",
+    messagingSenderId: "161908323568",
+    appId: "1:161908323568:web:5ba0b3f7381cd7d1d9be35"
+  };
 
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+  const numbersRef = database.ref("numbers"); // Define numbersRef here
   </script>
 
   <input type="text" id="messageInput1" placeholder="Water" style="margin-top: 40px; margin-left: 20px;">
@@ -59,9 +60,6 @@
       alert("Numbers and timestamp recorded successfully!");
     }
 
-
-    // Reference the "numbers" node in the database
-    var numbersRef = database.ref("numbers");
 
     // Listen for changes in the numbers data
     numbersRef.on("value", function(snapshot) {
@@ -268,8 +266,95 @@
 
 
 
+  <p id="totalGasUsage">Total gas usage = Calculating...</p>
+
+ 
+  
+  
+  <script>
+  
+    // Calculate and display total gas usage
+    function calculateTotalGasUsage() {
+      const numbers = firebase.database().ref("numbers");
+    
+      numbers.once('value').then(function (snapshot) {
+        var data = snapshot.val();
+        var gasValues = [];
+    
+        snapshot.forEach(function (childSnapshot) {
+          var numberData = childSnapshot.val();
+          gasValues.push(parseFloat(numberData.gas));
+        });
+    
+        // Check if there are at least two valid gas readings
+        if (gasValues.length >= 2) {
+          var totalGasUsage = gasValues[gasValues.length - 1] - gasValues[0];
+          document.getElementById("totalGasUsage").textContent = "Total gas usage = " + totalGasUsage.toFixed(2);
+        } else {
+          document.getElementById("totalGasUsage").textContent = "Not enough gas usage data for calculation.";
+        }
+      });
+    }
+    
+    // Call the function to calculate and display total gas usage
+    calculateTotalGasUsage();
+    </script>
+     
+
+    
+     <p id="totalUsage">Total electricity usage = Calculating...</p>
+
+     <script>
+       // Calculate and display total electricity usage
+       function calculateTotalElectricityUsage() {
+         const numbers = firebase.database().ref("numbers");
+     
+         numbers.once('value').then(function (snapshot) {
+           var data = snapshot.val();
+           var electricityValues = [];
+     
+           snapshot.forEach(function (childSnapshot) {
+             var numberData = childSnapshot.val();
+             electricityValues.push(parseFloat(numberData.electricity));
+           });
+     
+           // Check if there are at least two valid electricity readings
+           if (electricityValues.length >= 2) {
+             var totalElectricityUsage = electricityValues[electricityValues.length - 1] - electricityValues[0];
+             document.getElementById("totalUsage").textContent = "Total electricity usage = " + totalElectricityUsage.toFixed(2);
+           } else {
+             document.getElementById("totalUsage").textContent = "Not enough electricity usage data for calculation.";
+           }
+         });
+       }
+     
+       // Call the function to calculate and display total electricity usage
+       calculateTotalElectricityUsage();
+     </script>
+
+
+ Gas: M3 × 10 => kwh, 7 cent per kwh   
+ Electricity: Seventeen cent per kwh
+
+     
+     
+     
+     
+     
+     
+    
+
 </body>
 </html>
+
+
+
+
+
+
+
+
+
 
 
 
