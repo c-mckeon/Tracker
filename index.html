@@ -2,13 +2,16 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Usage Data Plot</title>
+  <title>Tracker</title>
   <!-- Include Chart.js library -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <title>Number Tracking Tool</title>
+  <title>Tracker</title>
 </head>
 <body>
 
+  <script src="https://cdn.jsdelivr.net/npm/date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <!-- Firebase JavaScript SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.7.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.7.1/firebase-database.js"></script>
@@ -32,27 +35,22 @@
   const numbersRef = database.ref("numbers"); // Define numbersRef here
   </script>
 
-  <input type="text" id="messageInput1" placeholder="Water" style="margin-top: 40px; margin-left: 20px;">
-  <input type="text" id="messageInput2" placeholder="Gas" style="margin-top: 40px; margin-left: 20px;">
-  <input type="text" id="messageInput3" placeholder="Electricity" style="margin-top: 40px; margin-left: 20px;">
+  <input type="text" id="messageInput1" placeholder="Weight" style="margin-top: 40px; margin-left: 20px;">
+
   <button onclick="sendMessage()">Send</button>
 
-  <ul id="messageList" style="margin-top: 40px; margin-left: 20px;"></ul>
+ 
 
   <script>
     function sendMessage() {
-      const water = document.getElementById('messageInput1').value;
-      const gas = document.getElementById('messageInput2').value;
-      const electricity = document.getElementById('messageInput3').value;
-      const timestamp = new Date().toISOString();
-      const unixtime = new Date().getTime(); // Use timestamps as keys
+      const Weight = document.getElementById('messageInput1').value;
+      const timestamp = new Date(new Date().getTime() + 2 * 60 * 60 * 1000).toISOString();
+      const unixtime = new Date().getTime() + 2 * 60 * 60 * 1000;
 
 
       // Push the data to the Firebase database
       numbersRef.push({
-        water: water,
-        gas: gas,
-        electricity: electricity,
+        Weight: Weight,
         timestamp: timestamp,
         unixtime: unixtime
       });
@@ -88,7 +86,7 @@
 
         // Create a span element for the number data
         var span = document.createElement("span");
-        span.textContent = `Water: ${numberData.water}, Gas: ${numberData.gas}, Electricity: ${numberData.electricity}, Unixtime: ${numberData.unixtime},  Timestamp: ${numberData.timestamp}`;
+        span.textContent = `Weight: ${numberData.Weight},  Unixtime: ${numberData.unixtime},  Timestamp: ${numberData.timestamp}`;
 
         // Append the span element to the <li>
         li.appendChild(span);
@@ -108,8 +106,7 @@
     }
   </script>
 
-<br></br>
-<br></br>
+
 <br></br>
 
 <div id="chart-container" style="padding-right: 500px;">
@@ -117,72 +114,95 @@
 </div>
 
 <script>
-  // Reference to the data in your database
-  var ref = firebase.database().ref("numbers");
+// Reference to the data in your database
+var ref = firebase.database().ref("numbers");
 
-  // Get the data
-  ref.once('value').then(function (snapshot) {
-    var data = snapshot.val();
-    var chartData = [];
+// Get the data
+ref.once('value').then(function (snapshot) {
+  var data = snapshot.val();
+  var chartData = [];
 
-    snapshot.forEach(function (childSnapshot) {
-      var numberData = childSnapshot.val();
-      chartData.push({
-        x: numberData.unixtime, // Use unixtime for the x-axis
-        y: parseInt(numberData.gas) // Use gas for the y-axis
-      });
+  snapshot.forEach(function (childSnapshot) {
+    var numberData = childSnapshot.val();
+    chartData.push({
+      x: numberData.unixtime * 1, // Convert to milliseconds
+      y: parseFloat(numberData.Weight) // Ensure Weight is a number
     });
+  });
 
-    // Sort the chartData based on the x values (unixtime)
-    chartData.sort(function (a, b) {
-      return a.x - b.x;
-    });
+  // Sort the chartData based on the x values (unixtime)
+  chartData.sort(function (a, b) {
+    return a.x - b.x;
+  });
 
-    // Calculate suggested min and max values for the y-axis
-    var minY = Math.min.apply(null, chartData.map(function (item) { return item.y; }));
-    var maxY = Math.max.apply(null, chartData.map(function (item) { return item.y; }));
+  // Calculate suggested min and max values for the y-axis
+  var minY = Math.min.apply(null, chartData.map(function (item) { return item.y; }));
+  var maxY = Math.max.apply(null, chartData.map(function (item) { return item.y; }));
 
-    // Create a chart
-    var ctx = document.getElementById('usage-chart').getContext('2d');
-    var chart = new Chart(ctx, {
-      type: 'scatter', // Use the scatter type for a dot plot
-      data: {
-        datasets: [{
-          label: 'Gas Usage Data',
-          data: chartData,
-          backgroundColor: 'black',
-          borderColor: 'blue',
-          showLine: true, // Display lines connecting the dots
-          fill: false, // Don't fill the area under the line
-          radius: 3 // Adjust the size of the dots
-        }]
-      },
-      options: {
-        scales: {
-          x: {
-            type: 'linear',
-            position: 'bottom',
-            min: 1695950000000, 
-            title: {
-              display: true,
-              text: 'Unix Time'
+  // Create a chart
+  var ctx = document.getElementById('usage-chart').getContext('2d');
+  var chart = new Chart(ctx, {
+    type: 'line', // Changed to 'line' for a connected plot
+    data: {
+      datasets: [{
+        label: 'Weight',
+        data: chartData,
+        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+        borderColor: 'blue',
+        pointBackgroundColor: 'black',
+        pointBorderColor: 'blue',
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        fill: false
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: {
+          type: 'time',
+          time: {
+            unit: 'day',
+            displayFormats: {
+              day: 'dd MMM yyyy'
             }
           },
-          y: {
-            beginAtZero: false,
-            suggestedMin: minY - 1, // Adjust as needed
-            suggestedMax: maxY + 1, // Adjust as needed
-            title: {
-              display: true,
-              text: 'Gas Usage'
+          title: {
+            display: true,
+            text: 'Date'
+          }
+        },
+        y: {
+          beginAtZero: false,
+          suggestedMin: 54, //Math.max(0, minY - 1), Ensure it doesn't go below 0
+          suggestedMax: 61, //maxY + 1,
+          title: {
+            display: true,
+            text: 'Weight'
+          }
+        }
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            title: function(context) {
+              return new Date(context[0].parsed.x).toLocaleDateString('en-US', { 
+                day: 'numeric', 
+                month: 'short', 
+                year: 'numeric' 
+              });
             }
           }
         }
       }
-    });
+    }
   });
+}).catch(function(error) {
+  console.error("Error fetching data:", error);
+});
 </script>
 
+<!--
 <br></br>
 <br></br>
 <br></br>
@@ -258,49 +278,75 @@
   });
 </script>
 
+-->
 
 
 
 
 
 
-
-
-  <p id="totalGasUsage">Total gas usage = Calculating...</p>
-
+  <p id="averageRecentThree"> Rolling average = Calculating...</p>
+  <p id="totalWeightchange">Weight change since October = Calculating...</p>
+  <p id="maxWeight">Peak weight = Calculating...</p>
  
   
   
   <script>
   
-    // Calculate and display total gas usage
-    function calculateTotalGasUsage() {
-      const numbers = firebase.database().ref("numbers");
-    
-      numbers.once('value').then(function (snapshot) {
-        var data = snapshot.val();
-        var gasValues = [];
-    
-        snapshot.forEach(function (childSnapshot) {
-          var numberData = childSnapshot.val();
-          gasValues.push(parseFloat(numberData.gas));
-        });
-    
-        // Check if there are at least two valid gas readings
-        if (gasValues.length >= 2) {
-          var totalGasUsage = gasValues[gasValues.length - 1] - gasValues[0];
-          document.getElementById("totalGasUsage").textContent = "Total gas usage = " + totalGasUsage.toFixed(2);
-        } else {
-          document.getElementById("totalGasUsage").textContent = "Not enough gas usage data for calculation.";
-        }
-      });
-    }
-    
-    // Call the function to calculate and display total gas usage
-    calculateTotalGasUsage();
-    </script>
-     
+  function calculateTotalWeightchange() {
+  const numbers = firebase.database().ref("numbers");
 
+  numbers.once('value').then(function (snapshot) {
+    var data = snapshot.val();
+    var WeightValues = [];
+    let averageRecentThree = null; // Define averageRecentThree outside the conditional block
+
+    snapshot.forEach(function (childSnapshot) {
+      var numberData = childSnapshot.val();
+      WeightValues.push(parseFloat(numberData.Weight));
+    });
+       // Calculate the average of the three most recent readings if available
+        if (WeightValues.length >= 3) {
+      // Sort WeightValues in ascending order if needed
+      WeightValues.sort((a, b) => a - b);
+
+      // Get the three most recent values
+      const recentThree = WeightValues.slice(-3);
+
+      // Calculate the average
+      averageRecentThree = recentThree.reduce((sum, weight) => sum + weight, 0) / recentThree.length;
+      document.getElementById("averageRecentThree").textContent = "Rolling average = " + averageRecentThree.toFixed(2) + " kg";
+    } else {
+      document.getElementById("averageRecentThree").textContent = "Not enough data for average of last 3 readings.";
+    }
+
+    // Check if there are at least two valid Weight readings
+    if (WeightValues.length >= 2) {
+      // Calculate total weight change
+      var totalWeightchange = averageRecentThree - WeightValues[0];
+      document.getElementById("totalWeightchange").textContent = "Weight change since October = " + totalWeightchange.toFixed(2) + " kg";
+
+      // Calculate maximum weight
+      var maxWeight = Math.max(...WeightValues);
+      document.getElementById("maxWeight").textContent = "Peak weight = " + maxWeight.toFixed(2) + " kg";
+    } else {
+      document.getElementById("totalWeightchange").textContent = "Not enough data for calculation.";
+      document.getElementById("maxWeight").textContent = "Not enough data for maximum weight.";
+    }
+ 
+
+
+  });
+}
+
+    // Call the function to calculate and display 
+    calculateTotalWeightchange();
+    
+    
+    </script>
+    
+    
+     <!--
     
      <p id="totalUsage">Total electricity usage = Calculating...</p>
 
@@ -331,13 +377,10 @@
        // Call the function to calculate and display total electricity usage
        calculateTotalElectricityUsage();
      </script>
+-->
 
-
- Gas: M3 × 10 => kwh, 7 cent per kwh   
- Electricity: Seventeen cent per kwh
-
-     
-     
+  
+<ul id="messageList" style="margin-top: 40px; margin-left: 20px;"></ul>
      
      
      
