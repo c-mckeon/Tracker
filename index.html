@@ -130,6 +130,35 @@ ref.once('value').then(function (snapshot) {
     });
   });
 
+
+  // Sort the chartData based on the x values (unixtime) to ensure chronological order
+  chartData.sort(function (a, b) {
+    return a.x - b.x; // Sort in ascending order based on timestamp
+  });
+// Function to calculate moving average
+function movingAverage(chartData, windowSize) {
+  let avgData = [];
+  
+  for (let i = 0; i <= chartData.length - windowSize; i++) {
+    let sum = 0;
+    
+    for (let j = 0; j < windowSize; j++) {
+      sum += chartData[i + j].y;
+    }
+    
+    avgData.push({
+      x: chartData[i + Math.floor(windowSize / 2)].x, // Center the moving average
+      y: sum / windowSize
+    });
+  }
+  
+  return avgData;
+}
+
+// Calculate the moving average with a window of 5
+let movingAvgData = movingAverage(chartData, 4); // Adjust windowSize as needed
+
+
   // Sort the chartData based on the x values (unixtime)
   chartData.sort(function (a, b) {
     return a.x - b.x;
@@ -153,7 +182,16 @@ ref.once('value').then(function (snapshot) {
         pointBorderColor: 'blue',
         pointRadius: 3,
         pointHoverRadius: 5,
-        fill: false
+        fill: false,
+        showLine: false 
+      },      {
+        label: 'Moving Average',       // Moving average trendline
+        data: movingAvgData,           // Use the moving average data
+        borderColor: 'red',
+        pointRadius: 0,                // Hide points for the trendline
+        fill: false,
+        tension: 0.3,
+        cubicInterpolationMode: 'monotone'                    // Smooth the trendline for a better look
       }]
     },
     options: {
