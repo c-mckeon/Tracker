@@ -138,25 +138,44 @@ ref.once('value').then(function (snapshot) {
 // Function to calculate moving average
 function movingAverage(chartData, windowSize) {
   let avgData = [];
-  
-  for (let i = 0; i <= chartData.length - windowSize; i++) {
+
+  // Calculate the average of the first three points once
+  const firstThreeAvg = (chartData[0].y + chartData[1].y + chartData[2].y) / 3;
+
+  for (let i = 0; i < chartData.length; i++) {
     let sum = 0;
-    
-    for (let j = 0; j < windowSize; j++) {
-      sum += chartData[i + j].y;
+    let count = 0;
+
+    // For the first three points, use the average of the first three points
+    if (i < 3) {
+      avgData.push({
+        x: chartData[i].x,       // Use the current x value for positioning
+        y: firstThreeAvg         // Use the average of the first three points
+      });
+    } else {
+      // For points from the fourth onward, use the last three points
+      for (let j = 0; j < windowSize; j++) {
+        sum += chartData[i - j].y;
+      }
+      count = windowSize; // Always use 3 for the last points
+
+      // Push the moving average at the current point
+      avgData.push({
+        x: chartData[i].x,       // Use the current x value for positioning
+        y: sum / count           // Calculate the average
+      });
     }
-    
-    avgData.push({
-      x: chartData[i + Math.floor(windowSize / 2)].x, // Center the moving average
-      y: sum / windowSize
-    });
   }
-  
+
   return avgData;
 }
 
+
+
+
+
 // Calculate the moving average with a window of 5
-let movingAvgData = movingAverage(chartData, 4); // Adjust windowSize as needed
+let movingAvgData = movingAverage(chartData, 3); // Adjust windowSize as needed
 
 
   // Sort the chartData based on the x values (unixtime)
