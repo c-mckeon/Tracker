@@ -137,45 +137,37 @@ ref.once('value').then(function (snapshot) {
   });
 // Function to calculate moving average
 function movingAverage(chartData, windowSize) {
-  let avgData = [];
+    let avgData = [];
 
-  // Calculate the average of the first three points once
-  const firstThreeAvg = (chartData[0].y + chartData[1].y + chartData[2].y) / 3;
+    for (let i = 0; i < chartData.length; i++) {
+        let sum = 0;
+        let count = 0;
 
-  for (let i = 0; i < chartData.length; i++) {
-    let sum = 0;
-    let count = 0;
+        // Calculate moving average based on the available points
+        for (let j = 0; j < windowSize; j++) {
+            // Ensure we're not accessing an invalid index
+            if (i - j >= 0) {
+                sum += chartData[i - j].y;
+                count++; // Increment count for valid points
+            }
+        }
 
-    // For the first three points, use the average of the first three points
-    if (i < 3) {
-      avgData.push({
-        x: chartData[i].x,       // Use the current x value for positioning
-        y: firstThreeAvg         // Use the average of the first three points
-      });
-    } else {
-      // For points from the fourth onward, use the last three points
-      for (let j = 0; j < windowSize; j++) {
-        sum += chartData[i - j].y;
-      }
-      count = windowSize; // Always use 3 for the last points
-
-      // Push the moving average at the current point
-      avgData.push({
-        x: chartData[i].x,       // Use the current x value for positioning
-        y: sum / count           // Calculate the average
-      });
+        // Push the moving average at the current point
+        avgData.push({
+            x: chartData[i].x,       // Use the current x value for positioning
+            y: sum / count           // Calculate the average
+        });
     }
-  }
 
-  return avgData;
+    return avgData;
 }
 
 
 
 
 
-// Calculate the moving average with a window of 5
-let movingAvgData = movingAverage(chartData, 3); // Adjust windowSize as needed
+// Calculate the moving average with a window of 4
+let movingAvgData = movingAverage(chartData, 8); // Adjust windowSize as needed
 
 
   // Sort the chartData based on the x values (unixtime)
@@ -342,9 +334,11 @@ let movingAvgData = movingAverage(chartData, 3); // Adjust windowSize as needed
 
 
 
-  <p id="averageRecentThree"> Rolling average = Calculating...</p>
-  <p id="totalWeightchange">Weight change since October = Calculating...</p>
+  <p id="averageRecentFive"> Rolling average = Calculating...</p>
+  <p id="startWeight">Start weight = Calculating...</p>
+  <p id="totalWeightchange">Weight change = Calculating...</p>
   <p id="maxWeight">Peak weight = Calculating...</p>
+ 
  
   
   
@@ -356,36 +350,44 @@ let movingAvgData = movingAverage(chartData, 3); // Adjust windowSize as needed
   numbers.once('value').then(function (snapshot) {
     var data = snapshot.val();
     var WeightValues = [];
-    let averageRecentThree = null; // Define averageRecentThree outside the conditional block
+    let averageRecentFive = null; // Define averageRecentFive outside the conditional block
 
     snapshot.forEach(function (childSnapshot) {
       var numberData = childSnapshot.val();
       WeightValues.push(parseFloat(numberData.Weight));
     });
        // Calculate the average of the three most recent readings if available
-        if (WeightValues.length >= 3) {
+        if (WeightValues.length >= 5) {
       // Sort WeightValues in ascending order if needed
-      WeightValues.sort((a, b) => a - b);
+      //WeightValues.sort((a, b) => a - b);
 
-      // Get the three most recent values
-      const recentThree = WeightValues.slice(-3);
+      // Get the five most recent values
+      const recentFive = WeightValues.slice(-5);
 
       // Calculate the average
-      averageRecentThree = recentThree.reduce((sum, weight) => sum + weight, 0) / recentThree.length;
-      document.getElementById("averageRecentThree").textContent = "Rolling average = " + averageRecentThree.toFixed(2) + " kg";
+      averageRecentFive = recentFive.reduce((sum, weight) => sum + weight, 0) / recentFive.length;
+      document.getElementById("averageRecentFive").textContent = "Rolling average = " + averageRecentFive.toFixed(2) + " kg";
     } else {
-      document.getElementById("averageRecentThree").textContent = "Not enough data for average of last 3 readings.";
+      document.getElementById("averageRecentFive").textContent = "Not enough data for average of last 5 readings.";
     }
+
+        // Proceed only if there are at least 5 readings
+        if (WeightValues.length >= 5) {
+      // Get the first 5 values
+      const firstFive = WeightValues.slice(0, 5);
+      const firstFiveAverage = firstFive.reduce((sum, weight) => sum + weight, 0) / firstFive.length;
+
 
     // Check if there are at least two valid Weight readings
     if (WeightValues.length >= 2) {
       // Calculate total weight change
-      var totalWeightchange = averageRecentThree - WeightValues[0];
-      document.getElementById("totalWeightchange").textContent = "Weight change since October = " + totalWeightchange.toFixed(2) + " kg";
+      var totalWeightchange = averageRecentFive - firstFiveAverage;
+      document.getElementById("totalWeightchange").textContent = "Weight change = " + totalWeightchange.toFixed(2) + " kg";
 
       // Calculate maximum weight
       var maxWeight = Math.max(...WeightValues);
-      document.getElementById("maxWeight").textContent = "Peak weight = " + maxWeight.toFixed(2) + " kg";
+      document.getElementById("maxWeight").textContent = "Peak weight = " + maxWeight.toFixed(2) + " kg" ;
+      document.getElementById("startWeight").textContent = "Start weight = " + firstFiveAverage.toFixed(2) + " kg" ;
     } else {
       document.getElementById("totalWeightchange").textContent = "Not enough data for calculation.";
       document.getElementById("maxWeight").textContent = "Not enough data for maximum weight.";
@@ -393,13 +395,12 @@ let movingAvgData = movingAverage(chartData, 3); // Adjust windowSize as needed
  
 
 
-  });
+    }  }); 
 }
 
     // Call the function to calculate and display 
     calculateTotalWeightchange();
-    
-    
+  
     </script>
     
     
