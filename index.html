@@ -92,7 +92,7 @@
         li.appendChild(span);
 
         // Append the <li> element to the <ul>
-        messageList.appendChild(li);
+         messageList.appendChild(li);
       });
     });
 
@@ -437,11 +437,36 @@ let movingAvgData = movingAverage(chartData, 8); // Adjust windowSize as needed
      </script>
 -->
 
-  
-<ul id="messageList" style="margin-top: 40px; margin-left: 20px;"></ul>
+<button id="toggleButton">Show Data</button>
+<ul id="messageList" style="display: none; margin-top: 40px; margin-left: 20px;"></ul>
+
+<script>
+    document.getElementById('toggleButton').addEventListener('click', function() {
+        var messageList = document.getElementById('messageList');
+        if (messageList.style.display === 'none' || messageList.style.display === '') {
+            messageList.style.display = 'block';
+            this.textContent = 'Hide Data';
+        } else {
+            messageList.style.display = 'none';
+            this.textContent = 'Show Data';
+        }
+    });
+</script>
+
      
-     
-     
+<div class="col-sm-2" style="margin-left: 90px; display: none;">
+  <button type="button" id="backupbtn" class="btn btn-primary" style="width: 120px;background-color: green; border-color: black;">backup</button>
+  <div id="passwordPrompt" style="display: none;">
+    <label for="password">Enter Password:</label>
+    <input type="password" id="password" />
+    <button type="button" id="submitPassword">Submit</button>
+    <div id="error" style="color: red;"></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.7.1/firebase-auth.js"></script>
+<script src="trackerbackup.js" defer></script>
+
      
     
 
