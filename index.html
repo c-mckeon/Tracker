@@ -114,7 +114,7 @@
 </div>
 
 <script>
-// Reference to the data in your database
+// Reference to the data in your database 
 var ref = firebase.database().ref("numbers");
 
 // Get the data
@@ -130,50 +130,74 @@ ref.once('value').then(function (snapshot) {
     });
   });
 
-
   // Sort the chartData based on the x values (unixtime) to ensure chronological order
-  chartData.sort(function (a, b) {
-    return a.x - b.x; // Sort in ascending order based on timestamp
-  });
-// Function to calculate moving average
-function movingAverage(chartData, windowSize) {
-    let avgData = [];
-
-    for (let i = 0; i < chartData.length; i++) {
-        let sum = 0;
-        let count = 0;
-
-        // Calculate moving average based on the available points
-        for (let j = 0; j < windowSize; j++) {
-            // Ensure we're not accessing an invalid index
-            if (i - j >= 0) {
-                sum += chartData[i - j].y;
-                count++; // Increment count for valid points
-            }
-        }
-
-        // Push the moving average at the current point
-        avgData.push({
-            x: chartData[i].x,       // Use the current x value for positioning
-            y: sum / count           // Calculate the average
-        });
-    }
-
-    return avgData;
-}
-
-
-
-
-
-// Calculate the moving average with a window of 4
-let movingAvgData = movingAverage(chartData, 8); // Adjust windowSize as needed
-
-
-  // Sort the chartData based on the x values (unixtime)
   chartData.sort(function (a, b) {
     return a.x - b.x;
   });
+
+// Combined dynamic smoothing: blend between Gaussian and rolling average based on point density
+function dynamicSmoothing(chartData, sigma, windowSize) {
+  let smoothedData = [];
+
+  for (let i = 0; i < chartData.length; i++) {
+    let centerTime = chartData[i].x;
+
+    let rollingSum = 0;
+    let rollingCount = 0;
+
+    let gaussianSum = 0;
+    let weightSum = 0;
+
+    let pointCountInWindow = 0;
+
+    // Compute rolling average (index-based window)
+    let start = Math.max(0, i - windowSize);
+    let end = Math.min(chartData.length - 1, i + windowSize);
+    for (let j = start; j <= end; j++) {
+      rollingSum += chartData[j].y;
+      rollingCount++;
+    }
+
+    // Compute Gaussian smoothing (time-based)
+    for (let j = 0; j < chartData.length; j++) {
+      let timeDiff = chartData[j].x - centerTime;
+      if (Math.abs(timeDiff) <= sigma) {
+        pointCountInWindow++;
+      }
+      let weight = Math.exp(-Math.pow(timeDiff, 2) / (2 * Math.pow(sigma, 2)));
+      gaussianSum += chartData[j].y * weight;
+      weightSum += weight;
+    }
+
+    let rollingAvgY = rollingSum / rollingCount;
+    let gaussianAvgY = gaussianSum / weightSum;
+
+    // Normalize density from 1–8 to blendFactor 0–1
+    let density = Math.min(8, Math.max(1, pointCountInWindow));
+    let blendFactor = (density - 1) / (8 - 1); // 0 at 1 point, 1 at 8 points
+
+    // Adjust to start at 20% Gaussian (i.e., 80% rolling)
+    let gaussianWeight = 0.5 + 0.5 * blendFactor;
+    let rollingWeight = 1 - gaussianWeight;
+
+    let blendedY = rollingWeight * rollingAvgY + gaussianWeight * gaussianAvgY;
+
+    smoothedData.push({
+      x: chartData[i].x,
+      y: blendedY
+    });
+  }
+
+  return smoothedData;
+}
+
+// Example values
+let sigma = 10 * 24 * 60 * 60 * 1000; // 10 days in ms for Gaussian smoothing
+let windowSize = 5; // ±6 points for rolling average
+
+// Apply dynamic smoothing
+let combinedSmoothedData = dynamicSmoothing(chartData, sigma, windowSize);
+
 
   // Calculate suggested min and max values for the y-axis
   var minY = Math.min.apply(null, chartData.map(function (item) { return item.y; }));
@@ -182,7 +206,7 @@ let movingAvgData = movingAverage(chartData, 8); // Adjust windowSize as needed
   // Create a chart
   var ctx = document.getElementById('usage-chart').getContext('2d');
   var chart = new Chart(ctx, {
-    type: 'line', // Changed to 'line' for a connected plot
+    type: 'line',
     data: {
       datasets: [{
         label: 'Weight',
@@ -195,14 +219,14 @@ let movingAvgData = movingAverage(chartData, 8); // Adjust windowSize as needed
         pointHoverRadius: 5,
         fill: false,
         showLine: false 
-      },      {
-        label: 'Moving Average',       // Moving average trendline
-        data: movingAvgData,           // Use the moving average data
+      }, {
+        label: 'Combined Smoothed Trendline',
+        data: combinedSmoothedData,
         borderColor: 'red',
-        pointRadius: 0,                // Hide points for the trendline
+        pointRadius: 0,
         fill: false,
         tension: 0.3,
-        cubicInterpolationMode: 'monotone'                    // Smooth the trendline for a better look
+        cubicInterpolationMode: 'monotone'
       }]
     },
     options: {
@@ -223,8 +247,8 @@ let movingAvgData = movingAverage(chartData, 8); // Adjust windowSize as needed
         },
         y: {
           beginAtZero: false,
-          suggestedMin: 54, //Math.max(0, minY - 1), Ensure it doesn't go below 0
-          suggestedMax: 61, //maxY + 1,
+          suggestedMin: 54,
+          suggestedMax: 61,
           title: {
             display: true,
             text: 'Weight'
@@ -249,6 +273,7 @@ let movingAvgData = movingAverage(chartData, 8); // Adjust windowSize as needed
 }).catch(function(error) {
   console.error("Error fetching data:", error);
 });
+
 </script>
 
 <!--
